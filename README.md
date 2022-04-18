@@ -46,7 +46,7 @@ Keep up-to-date with `brew upgrade kube` (or `brew upgrade` to upgrade everythin
 
 ***MacOS X notes for security error***
 
- Depending of your OS settings, when installing then binary manually you must run the following command:
+ Depending on your OS settings, when installing the binary manually you must run the following command:
  `xattr -r -d com.apple.quarantine /usr/local/bin/kube`
 
 ## Usage
