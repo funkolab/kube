@@ -26,6 +26,7 @@ func Execute() {
 	flag.Parse()
 
 	if *vFlag {
+		fmt.Printf("kube: version %s (%s)\n", version.Version, version.Commit)
 		fmt.Printf("build date:%s by: %s\nplatform: %s/%s\n", version.Date, version.BuiltBy, version.OsName, version.PlatformName)
 		os.Exit(0)
 	}
