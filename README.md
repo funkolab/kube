@@ -26,7 +26,7 @@ There are several installation options:
 - As Homebrew or Linuxbrew package
 - Manual installation
 
-After installing, the tools will be available as `kube`.
+After installing, the tool will be available as `kube`.
 
 ### Homebrew Package
 
@@ -36,23 +36,22 @@ You can install with [Homebrew](https://brew.sh) for macOS or [LinuxBrew](https:
 brew install funkolab/tap/kube
 ```
 
-Keep up-to-date with `brew upgrade kube` (or brew upgrade to upgrade everything)
+Keep up-to-date with `brew upgrade kube` (or `brew upgrade` to upgrade everything)
 
 ### Manual
 
  - Download your corresponding [release](https://github.com/funkolab/kube/releases)
- - Install the binary somewhere in your PATH (/usr/local/bin for example)
+ - Install the binary somewhere in your PATH (`/usr/local/bin` for example)
  - use it with `kube`
 
 ***MacOS X notes for security error***
 
- Depending of your OS settings when you install you binary manually we must launch the following command:
+ Depending of your OS settings, when installing then binary manually you must run the following command:
  `xattr -r -d com.apple.quarantine /usr/local/bin/kube`
 
 ## Usage
 
 TODO
-
 
 
 ## Building From Source
