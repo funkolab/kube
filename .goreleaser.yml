@@ -1,0 +1,48 @@
+before:
+  hooks:
+    - go mod download
+builds:
+  - main: kube.go
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w 
+      - -X github.com/funkolab/kube/pkg/version.Version={{.Version}} 
+      - -X github.com/funkolab/kube/pkg/version.Commit={{.ShortCommit}} 
+      - -X github.com/funkolab/kube/pkg/version.Date={{.Date}} 
+      - -X github.com/funkolab/kube/pkg/version.BuiltBy=GoReleaser
+      - -X github.com/funkolab/kube/pkg/version.OsName={{.Os}}
+      - -X github.com/funkolab/kube/pkg/version.PlatformName={{.Arch}}
+archives:
+  - builds:
+      - kube
+    name_template: "{{ .ProjectName }}_{{ .Tag }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    wrap_in_directory: false
+    format: tar.gz
+
+# Homebrew
+brews:
+  - name: kube
+    tap:
+      owner: funkolab
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.FUNKOLAB_BOT_PAT }}"
+    commit_author:
+      name: funkolab
+      email: reg-github@geo6.net
+    folder: Formula
+    homepage: https://github.com/funkolab/kube 
+    description: CLI tools to manage your kubeconfig file !
+    test: |
+      system "kube -h"
