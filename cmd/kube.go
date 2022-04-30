@@ -12,13 +12,22 @@ import (
 	"syscall"
 
 	"github.com/funkolab/kube/pkg/version"
-	"github.com/manifoldco/promptui"
+	"github.com/ktr0731/go-fuzzyfinder"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
+
+type kubeChoice struct {
+	Name     string
+	Context  *clientcmdapi.Context
+	Config   *clientcmdapi.Config
+	filePath string
+}
 
 func Execute() {
 
 	var result string
-	var config Kubeconfig
+	var config *clientcmdapi.Config
 	var filePath string
 
 	var lFlag = flag.Bool("l", false, "Launch a new shell and set KUBECONFIG")
@@ -49,7 +58,11 @@ func Execute() {
 		if len(bytes) > 0 {
 			// there is something on STDIN
 
-			config.init(bytes)
+			config, err = clientcmd.Load(bytes)
+			if err != nil {
+				fmt.Printf("Kubeconfig format is invalid: %s\n", err)
+				os.Exit(1)
+			}
 
 			result = strings.TrimSuffix(config.CurrentContext, "-context")
 
@@ -69,9 +82,9 @@ func Execute() {
 		}
 	} else {
 		// stdin is from a terminal
+		// interactive mode
 
-		var fileList []string
-		var fileListNames []string
+		var selectList []kubeChoice
 
 		files, err := ioutil.ReadDir(kubieFolder)
 		if err != nil {
@@ -87,29 +100,47 @@ func Execute() {
 			if file.Mode().IsRegular() {
 				ext := filepath.Ext(file.Name())
 				if ext == ".yaml" || ext == ".yml" {
-					fileList = append(fileList, file.Name())
-					fileListNames = append(fileListNames, strings.TrimSuffix(file.Name(), ext))
+
+					filePath = filepath.Join(kubieFolder, file.Name())
+					config = clientcmd.GetConfigFromFileOrDie(filePath)
+
+					for name, context := range config.Contexts {
+						selectList = append(selectList, kubeChoice{Name: name, Context: context, Config: config, filePath: filePath})
+					}
+
 				}
 			}
 		}
 
-		prompt := promptui.Select{
-			Label: "Select Cluster",
-			Items: fileListNames,
-		}
+		index, err := fuzzyfinder.Find(
+			selectList,
+			func(i int) string {
+				return selectList[i].Name
+			},
+			fuzzyfinder.WithPreviewWindow(func(i, w, h int) string {
+				if i == -1 {
+					return ""
+				}
 
-		index, _, err := prompt.Run()
+				context := strings.ToUpper(strings.TrimSuffix(selectList[i].Name, "-context"))
+				server := strings.TrimPrefix(selectList[i].Config.Clusters[selectList[i].Context.Cluster].Server, "https://")
+				user := selectList[i].Context.AuthInfo
+				namespace := selectList[i].Context.Namespace
+				if namespace == "" {
+					namespace = "default"
+				}
 
-		result = fileList[index]
-
-		filePath = filepath.Join(kubieFolder, result)
-
+				return fmt.Sprintf("%s\n\n    server:  %s\n      user:  %s\n namespace:  %s", context, server, user, namespace)
+			}),
+		)
 		if err != nil {
-			fmt.Printf("Prompt failed %v\n", err)
-			return
+			fmt.Printf("Selection %s\n", err)
+			os.Exit(1)
 		}
 
-		result = fileListNames[index]
+		result = selectList[index].Name
+		filePath = selectList[index].filePath
+		config = selectList[index].Config
 	}
 
 	if *lFlag {
@@ -117,8 +148,14 @@ func Execute() {
 		fmt.Printf("You set %q only for this session\n", result)
 		syscall.Exec(os.Getenv("SHELL"), []string{os.Getenv("SHELL")}, syscall.Environ())
 	} else {
-		err = copyFile(filePath, configFile)
+
+		if result != "" {
+			config.CurrentContext = result
+		}
+
+		err = clientcmd.WriteToFile(*config, configFile)
 		check(err)
+
 		fmt.Printf("You set %q globally\n", result)
 	}
 }
