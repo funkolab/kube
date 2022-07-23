@@ -7,9 +7,9 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
 
 	"github.com/funkolab/kube/pkg/version"
 	"github.com/ktr0731/go-fuzzyfinder"
@@ -46,12 +46,7 @@ func Execute() {
 	kubieFolder := filepath.Join(dirname, ".kube/kubie")
 	configFile := filepath.Join(dirname, ".kube/config")
 
-	info, err := os.Stdin.Stat()
-	if err != nil {
-		panic(err)
-	}
-
-	if (info.Mode() & os.ModeCharDevice) == 0 {
+	if isInputFromPipe() {
 		// data is being piped to stdin
 		bytes, _ := ioutil.ReadAll(os.Stdin)
 
@@ -146,7 +141,13 @@ func Execute() {
 	if *lFlag {
 		os.Setenv("KUBECONFIG", filePath)
 		fmt.Printf("You set %q only for this session\n", result)
-		syscall.Exec(os.Getenv("SHELL"), []string{os.Getenv("SHELL")}, syscall.Environ())
+		cmd := exec.Command(os.Getenv("SHELL"))
+		cmd.Stdin, _ = os.Open("/dev/tty")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		err := cmd.Run()
+		check(err)
+		fmt.Printf("You disconnect from %q\n", result)
 	} else {
 
 		if result != "" {
