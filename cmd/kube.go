@@ -32,7 +32,19 @@ func Execute() {
 
 	var lFlag = flag.Bool("l", false, "Launch a new shell and set KUBECONFIG")
 	var vFlag = flag.Bool("v", false, "Print the version of the plugin")
+
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), "Usage:\n  kube [flags] [filter]\n\n")
+		flag.PrintDefaults()
+	}
+
 	flag.Parse()
+
+	if flag.NArg() > 1 {
+		fmt.Println("too may arguments")
+		flag.Usage()
+		os.Exit(1)
+	}
 
 	if *vFlag {
 		fmt.Printf("kube: version %s (%s)\n", version.Version, version.Commit)
@@ -100,6 +112,9 @@ func Execute() {
 					config = clientcmd.GetConfigFromFileOrDie(filePath)
 
 					for name, context := range config.Contexts {
+						if flag.NArg() == 1 && !strings.Contains(name, flag.Arg(0)) {
+							continue
+						}
 						selectList = append(selectList, kubeChoice{Name: name, Context: context, Config: config, filePath: filePath})
 					}
 
@@ -107,30 +122,39 @@ func Execute() {
 			}
 		}
 
-		index, err := fuzzyfinder.Find(
-			selectList,
-			func(i int) string {
-				return selectList[i].Name
-			},
-			fuzzyfinder.WithPreviewWindow(func(i, w, h int) string {
-				if i == -1 {
-					return ""
-				}
+		if len(selectList) == 0 {
+			fmt.Printf("No cluster found with the filter \"%s\"\n", flag.Arg(0))
+			return
+		}
 
-				context := strings.ToUpper(strings.TrimSuffix(selectList[i].Name, "-context"))
-				server := strings.TrimPrefix(selectList[i].Config.Clusters[selectList[i].Context.Cluster].Server, "https://")
-				user := selectList[i].Context.AuthInfo
-				namespace := selectList[i].Context.Namespace
-				if namespace == "" {
-					namespace = "default"
-				}
+		var index = 0
+		if len(selectList) > 1 {
 
-				return fmt.Sprintf("%s\n\n    server:  %s\n      user:  %s\n namespace:  %s", context, server, user, namespace)
-			}),
-		)
-		if err != nil {
-			fmt.Printf("Selection %s\n", err)
-			os.Exit(1)
+			index, err = fuzzyfinder.Find(
+				selectList,
+				func(i int) string {
+					return selectList[i].Name
+				},
+				fuzzyfinder.WithPreviewWindow(func(i, w, h int) string {
+					if i == -1 {
+						return ""
+					}
+
+					context := strings.ToUpper(strings.TrimSuffix(selectList[i].Name, "-context"))
+					server := strings.TrimPrefix(selectList[i].Config.Clusters[selectList[i].Context.Cluster].Server, "https://")
+					user := selectList[i].Context.AuthInfo
+					namespace := selectList[i].Context.Namespace
+					if namespace == "" {
+						namespace = "default"
+					}
+
+					return fmt.Sprintf("%s\n\n    server:  %s\n      user:  %s\n namespace:  %s", context, server, user, namespace)
+				}),
+			)
+			if err != nil {
+				fmt.Printf("Selection %s\n", err)
+				os.Exit(1)
+			}
 		}
 
 		result = selectList[index].Name
