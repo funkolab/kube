@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -18,10 +17,11 @@ import (
 )
 
 type kubeChoice struct {
-	Name     string
-	Context  *clientcmdapi.Context
-	Config   *clientcmdapi.Config
-	filePath string
+	Name        string
+	ContextName string
+	Context     *clientcmdapi.Context
+	Config      *clientcmdapi.Config
+	filePath    string
 }
 
 func ProcessFromPipe() *kubeChoice {
@@ -36,12 +36,12 @@ func ProcessFromPipe() *kubeChoice {
 			os.Exit(1)
 		}
 
-		result := strings.TrimSuffix(config.CurrentContext, "-context")
+		name := strings.TrimSuffix(config.CurrentContext, "-context")
 
 		dirname, err := os.UserHomeDir()
 		check(err)
 
-		filePath := filepath.Join(dirname, ".kube/kubie", result+".yaml")
+		filePath := filepath.Join(dirname, ".kube/kubie", name+".yaml")
 		f, err := os.Create(filePath)
 		check(err)
 
@@ -55,10 +55,11 @@ func ProcessFromPipe() *kubeChoice {
 		w.Flush()
 
 		return &kubeChoice{
-			Name:     result,
-			Context:  config.Contexts[config.CurrentContext],
-			Config:   config,
-			filePath: filePath,
+			Name:        name,
+			ContextName: config.CurrentContext,
+			Context:     config.Contexts[config.CurrentContext],
+			Config:      config,
+			filePath:    filePath,
 		}
 
 	}
@@ -71,8 +72,6 @@ func InteractiveSelect() *kubeChoice {
 
 	kubieFolder := filepath.Join(dirname, ".kube/kubie")
 
-	var selectList []kubeChoice
-
 	files, err := ioutil.ReadDir(kubieFolder)
 	if err != nil {
 		log.Fatal(err)
@@ -83,24 +82,7 @@ func InteractiveSelect() *kubeChoice {
 		return nil
 	}
 
-	for _, file := range files {
-		if file.Mode().IsRegular() {
-			ext := filepath.Ext(file.Name())
-			if ext == ".yaml" || ext == ".yml" {
-
-				filePath := filepath.Join(kubieFolder, file.Name())
-				config := clientcmd.GetConfigFromFileOrDie(filePath)
-
-				for name, context := range config.Contexts {
-					if flag.NArg() == 1 && !strings.Contains(name, flag.Arg(0)) {
-						continue
-					}
-					selectList = append(selectList, kubeChoice{Name: name, Context: context, Config: config, filePath: filePath})
-				}
-
-			}
-		}
-	}
+	selectList := buildList(files, kubieFolder)
 
 	if len(selectList) == 0 {
 		fmt.Printf("No cluster found with the filter \"%s\"\n", flag.Arg(0))
@@ -142,8 +124,6 @@ func InteractiveSelect() *kubeChoice {
 
 func Execute() {
 
-	var result string
-
 	var choice *kubeChoice
 
 	var lFlag = flag.Bool("l", false, "Launch a new shell and set KUBECONFIG")
@@ -175,20 +155,10 @@ func Execute() {
 	}
 
 	if *lFlag {
-		os.Setenv("KUBECONFIG", choice.filePath)
-		fmt.Printf("You set %q only for this session\n", choice.Name)
-		cmd := exec.Command(os.Getenv("SHELL"))
-		cmd.Stdin, _ = os.Open("/dev/tty")
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		err := cmd.Run()
-		check(err)
-		fmt.Printf("You disconnect from %q\n", choice.Name)
+		launchShell(choice)
 	} else {
 
-		if result != "" {
-			choice.Config.CurrentContext = result
-		}
+		choice.Config.CurrentContext = choice.ContextName
 
 		dirname, err := os.UserHomeDir()
 		check(err)
