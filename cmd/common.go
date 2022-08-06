@@ -3,12 +3,15 @@ package cmd
 import (
 	"flag"
 	"fmt"
-	"io/fs"
+	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/golang-jwt/jwt/v4"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -36,9 +39,24 @@ func launchShell(choice *kubeChoice) {
 	fmt.Printf("You disconnect from %q\n", choice.Name)
 }
 
-func buildList(files []fs.FileInfo, kubieFolder string) []kubeChoice {
+func buildList() []kubeChoice {
 
 	var selectList []kubeChoice
+
+	dirname, err := os.UserHomeDir()
+	check(err)
+
+	kubieFolder := filepath.Join(dirname, ".kube/kubie")
+
+	files, err := ioutil.ReadDir(kubieFolder)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if len(files) == 0 {
+		fmt.Println("No kubeconfig files found")
+		os.Exit(1)
+	}
 
 	for _, file := range files {
 		if file.Mode().IsRegular() {
@@ -49,14 +67,52 @@ func buildList(files []fs.FileInfo, kubieFolder string) []kubeChoice {
 				config := clientcmd.GetConfigFromFileOrDie(filePath)
 
 				for name, context := range config.Contexts {
+
+					choice := kubeChoice{Name: name, ContextName: name, Context: context, Config: config, filePath: filePath}
+
 					if flag.NArg() == 1 && !strings.Contains(name, flag.Arg(0)) {
 						continue
 					}
-					selectList = append(selectList, kubeChoice{Name: name, ContextName: name, Context: context, Config: config, filePath: filePath})
+					if isTokenExpired(choice) {
+						continue
+					}
+					selectList = append(selectList, choice)
 				}
 
 			}
 		}
 	}
 	return selectList
+}
+
+func isTokenExpired(choice kubeChoice) bool {
+
+	tokenString := choice.Config.AuthInfos[choice.Context.AuthInfo].Token
+	if tokenString != "" {
+		claims := jwt.MapClaims{}
+		token, _ := jwt.ParseWithClaims(tokenString, claims, nil)
+
+		if token != nil {
+			exp := int64(claims["exp"].(float64))
+			if exp < time.Now().Unix() {
+				if len(choice.Config.Contexts) == 1 {
+					os.Remove(choice.filePath)
+				}
+				return true
+			}
+		}
+
+	}
+	return false
+}
+
+func checkList(selectList *[]kubeChoice) {
+	if len(*selectList) == 0 {
+		if flag.NArg() == 1 {
+			fmt.Printf("No cluster found with the filter \"%s\"\n", flag.Arg(0))
+		} else {
+			fmt.Println("No clusters found")
+		}
+		os.Exit(1)
+	}
 }

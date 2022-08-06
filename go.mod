@@ -3,6 +3,7 @@ module github.com/funkolab/kube
 go 1.18
 
 require (
+	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/ktr0731/go-fuzzyfinder v0.6.0
 	k8s.io/client-go v0.24.3
 )

@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -67,29 +66,14 @@ func ProcessFromPipe() *kubeChoice {
 }
 
 func InteractiveSelect() *kubeChoice {
-	dirname, err := os.UserHomeDir()
-	check(err)
 
-	kubieFolder := filepath.Join(dirname, ".kube/kubie")
+	selectList := buildList()
 
-	files, err := ioutil.ReadDir(kubieFolder)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if len(files) == 0 {
-		fmt.Println("No kubeconfig files found")
-		return nil
-	}
-
-	selectList := buildList(files, kubieFolder)
-
-	if len(selectList) == 0 {
-		fmt.Printf("No cluster found with the filter \"%s\"\n", flag.Arg(0))
-		return nil
-	}
+	checkList(&selectList)
 
 	var index = 0
+	var err error
+
 	if len(selectList) > 1 {
 
 		index, err = fuzzyfinder.Find(
@@ -122,12 +106,34 @@ func InteractiveSelect() *kubeChoice {
 	return &selectList[index]
 }
 
+func InteractiveDelete() {
+	listToClean := buildList()
+	checkList(&listToClean)
+
+	index, err := fuzzyfinder.FindMulti(
+		listToClean,
+		func(i int) string {
+			return listToClean[i].Name
+		},
+	)
+
+	if err != nil {
+		fmt.Printf("Selection %s\n", err)
+		os.Exit(1)
+	}
+
+	for _, choice := range index {
+		os.Remove(listToClean[choice].filePath)
+	}
+}
+
 func Execute() {
 
 	var choice *kubeChoice
 
 	var lFlag = flag.Bool("l", false, "Launch a new shell and set KUBECONFIG")
 	var vFlag = flag.Bool("v", false, "Print the version of the plugin")
+	var dFlag = flag.Bool("d", false, "Clean the kubeconfig files")
 
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage:\n  kube [flags] [filter]\n\n")
@@ -145,6 +151,11 @@ func Execute() {
 	if *vFlag {
 		fmt.Printf("kube: version %s (%s)\n", version.Version, version.Commit)
 		fmt.Printf("build date:%s by: %s\nplatform: %s/%s\n", version.Date, version.BuiltBy, version.OsName, version.PlatformName)
+		os.Exit(0)
+	}
+
+	if *dFlag {
+		InteractiveDelete()
 		os.Exit(0)
 	}
 
