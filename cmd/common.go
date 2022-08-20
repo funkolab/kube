@@ -3,7 +3,6 @@ package cmd
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -48,7 +47,7 @@ func buildList() []kubeChoice {
 
 	kubieFolder := filepath.Join(dirname, ".kube/kubie")
 
-	files, err := ioutil.ReadDir(kubieFolder)
+	files, err := os.ReadDir(kubieFolder)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -59,7 +58,7 @@ func buildList() []kubeChoice {
 	}
 
 	for _, file := range files {
-		if file.Mode().IsRegular() {
+		if file.Type().IsRegular() {
 			ext := filepath.Ext(file.Name())
 			if ext == ".yaml" || ext == ".yml" {
 

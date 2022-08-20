@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,7 +24,7 @@ type kubeChoice struct {
 }
 
 func ProcessFromPipe() *kubeChoice {
-	bytes, _ := ioutil.ReadAll(os.Stdin)
+	bytes, _ := io.ReadAll(os.Stdin)
 
 	// test if there is something on STDIN
 	if len(bytes) > 0 {
