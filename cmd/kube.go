@@ -46,6 +46,9 @@ func ProcessFromPipe() *kubeChoice {
 
 		defer f.Close()
 
+		err = os.Chmod(filePath, 0600)
+		check(err)
+
 		w := bufio.NewWriter(f)
 
 		_, err = w.WriteString(string(bytes))
