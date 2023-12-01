@@ -4,14 +4,14 @@ go 1.18
 
 require (
 	github.com/golang-jwt/jwt/v4 v4.5.0
-	github.com/ktr0731/go-fuzzyfinder v0.7.0
+	github.com/ktr0731/go-fuzzyfinder v0.8.0
 	k8s.io/client-go v0.28.3
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
-	github.com/gdamore/tcell/v2 v2.5.3 // indirect
+	github.com/gdamore/tcell/v2 v2.6.0 // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
@@ -20,12 +20,12 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/ktr0731/go-ansisgr v0.1.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
-	github.com/mattn/go-runewidth v0.0.14 // indirect
+	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/nsf/termbox-go v1.1.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/rivo/uniseg v0.4.2 // indirect
+	github.com/rivo/uniseg v0.4.3 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	golang.org/x/net v0.18.0 // indirect
 	golang.org/x/oauth2 v0.8.0 // indirect
