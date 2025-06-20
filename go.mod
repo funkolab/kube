@@ -7,7 +7,7 @@ toolchain go1.24.2
 require (
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/ktr0731/go-fuzzyfinder v0.9.0
-	k8s.io/client-go v0.33.1
+	k8s.io/client-go v0.33.2
 )
 
 require (
@@ -36,7 +36,7 @@ require (
 	golang.org/x/text v0.24.0 // indirect
 	golang.org/x/time v0.9.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	k8s.io/apimachinery v0.33.1 // indirect
+	k8s.io/apimachinery v0.33.2 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738 // indirect
 	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect
